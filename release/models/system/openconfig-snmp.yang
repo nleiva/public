@@ -292,7 +292,8 @@ module openconfig-snmp {
     }
 
     leaf port {
-      type inet:port-number;
+      type oc-inet:port-number;
+      default 162;
       description
         "UDP port used for notifications. If omitted,
         the standard SNMP trap port (162) is used.";
