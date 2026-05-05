@@ -1,0 +1,475 @@
+module openconfig-snmp {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/system/snmp";
+
+  prefix "oc-snmp";
+
+  // import some basic types
+  import ietf-inet-types {
+    prefix inet;
+  }
+
+  import ietf-yang-types {
+    prefix yang;
+  }
+
+  import openconfig-inet-types {
+    prefix oc-inet;
+  }
+
+  import openconfig-acl {
+    prefix oc-acl;
+  }
+
+  import openconfig-extensions {
+    prefix oc-ext;
+  }
+
+  // meta
+  organization "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "This module defines configuration and operational state
+    data for SNMP services on network systems.
+
+    This module is limited to community-based SNMP.
+    SNMPv3 is out of scope.";
+
+  oc-ext:openconfig-version "0.3.0";
+
+  revision "2026-05-04" {
+    description
+      "Remove SNMPv3, fix receiver identity, resolve
+      dual access-restriction paths, document filter
+      precedence, remove unneeded source-address.";
+    reference
+      "0.3.0";
+  }
+
+  revision "2026-04-15" {
+    description
+      "Initial revision.";
+    reference
+      "0.1.0";
+  }
+
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  identity SNMP_NOTIFICATION_EVENT {
+    description
+      "Base identity for SNMP notification event types.";
+  }
+
+  identity ALL {
+    base SNMP_NOTIFICATION_EVENT;
+    description
+      "Enable all SNMP notification event types.";
+  }
+
+  identity AUTHENTICATION {
+    base SNMP_NOTIFICATION_EVENT;
+    description
+      "Enable authentication failure notifications.";
+  }
+
+  identity LINE_STATUS {
+    base SNMP_NOTIFICATION_EVENT;
+    description
+      "Enable line/session status change notifications
+      (e.g., console or VTY login/logout events).";
+  }
+
+  typedef snmp-access-mode {
+    type enumeration {
+      enum READ_ONLY {
+        description
+          "Read-only community access.";
+      }
+      enum READ_WRITE {
+        description
+          "Read-write community access.";
+      }
+    }
+    description
+      "SNMP access mode for a community.";
+  }
+
+  typedef snmp-version {
+    type enumeration {
+      enum V1 {
+        description
+          "SNMP version 1.";
+      }
+      enum V2C {
+        description
+          "SNMP version 2c.";
+      }
+    }
+    description
+      "SNMP protocol version for a receiver or community
+      in this module.";
+  }
+
+  grouping snmp-global-config {
+    description
+      "Configuration data for global SNMP settings.";
+
+    leaf contact {
+      type string;
+      description
+        "Configured SNMP contact string.";
+    }
+
+    leaf location {
+      type string;
+      description
+        "Configured SNMP location string.";
+    }
+  }
+
+  grouping snmp-global-state {
+    description
+      "Operational state data for global SNMP settings.
+      Reserved for future operational counters such as
+      total requests received or invalid community
+      attempts.";
+  }
+
+  grouping snmp-community-client-config {
+    description
+      "Configuration data for allowed SNMP manager prefixes.";
+
+    leaf prefix {
+      type oc-inet:ip-prefix;
+      description
+        "Allowed manager prefix for this community.";
+    }
+  }
+
+  grouping snmp-community-client-state {
+    description
+      "Operational state data for community manager
+      prefixes. Reserved for future per-client
+      counters.";
+  }
+
+  grouping snmp-community-client-top {
+    description
+      "Top-level grouping for community manager prefixes.";
+
+    container clients {
+      description
+        "List of allowed manager prefixes for a community.";
+
+      list client {
+        key "prefix";
+        description
+          "List of prefixes allowed to use this community.";
+
+        leaf prefix {
+          type leafref {
+            path "../config/prefix";
+          }
+          description
+            "Reference to community client prefix.";
+        }
+
+        container config {
+          description
+            "Configuration data for a community client.";
+          uses snmp-community-client-config;
+        }
+
+        container state {
+          config false;
+          description
+            "Operational state data for a community client.";
+          uses snmp-community-client-config;
+          uses snmp-community-client-state;
+        }
+      }
+    }
+  }
+
+  grouping snmp-community-config {
+    description
+      "Configuration data for SNMP communities.";
+
+    leaf name {
+      type string;
+      description
+        "SNMP community name.";
+    }
+
+    leaf access-mode {
+      type snmp-access-mode;
+      description
+        "Access mode for this community.";
+    }
+
+    leaf version {
+      type snmp-version;
+      description
+        "SNMP version associated with this community.
+        Only V1 and V2C are supported by this module.";
+    }
+
+    leaf access-list {
+      type leafref {
+        path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set"
+          + "/oc-acl:config/oc-acl:name";
+      }
+      description
+        "Reference to an ACL restricting which managers
+        may use this community. When set, the clients
+        list is ignored and access is governed solely
+        by this ACL. If omitted, the clients list is
+        consulted; if both are absent, access is
+        unrestricted.";
+    }
+  }
+
+  grouping snmp-community-state {
+    description
+      "Operational state data for SNMP communities.
+      Reserved for future per-community counters.";
+  }
+
+  grouping snmp-community-top {
+    description
+      "Top-level grouping for SNMP community configuration.";
+
+    container communities {
+      description
+        "List of SNMP communities.";
+
+      list community {
+        key "name";
+        description
+          "List of configured SNMP communities.";
+
+        leaf name {
+          type leafref {
+            path "../config/name";
+          }
+          description
+            "Reference to the community list key.";
+        }
+
+        container config {
+          description
+            "Configuration data for an SNMP community.";
+          uses snmp-community-config;
+        }
+
+        container state {
+          config false;
+          description
+            "Operational state data for an SNMP community.";
+          uses snmp-community-config;
+          uses snmp-community-state;
+        }
+
+        uses snmp-community-client-top;
+      }
+    }
+  }
+
+  grouping snmp-receiver-config {
+    description
+      "Configuration data for SNMP notification receivers.";
+
+    leaf name {
+      type string;
+      description
+        "Unique name identifying this receiver entry.";
+    }
+
+    leaf address {
+      type oc-inet:ip-address;
+      description
+        "Receiver address for notifications.";
+    }
+
+    leaf port {
+      type inet:port-number;
+      description
+        "UDP port used for notifications. If omitted,
+        the standard SNMP trap port (162) is used.";
+    }
+
+    leaf version {
+      type snmp-version;
+      description
+        "SNMP version used for this receiver. Only V1
+        and V2C are supported by this module.";
+    }
+
+    leaf community {
+      type string;
+      description
+        "Community string used for v1/v2c notifications.";
+    }
+
+    leaf-list event-type {
+      type identityref {
+        base SNMP_NOTIFICATION_EVENT;
+      }
+      description
+        "Event types enabled for this specific receiver.
+        If empty, the receiver inherits the globally
+        configured event-type list under
+        notifications/config. If both are empty, no
+        notifications are sent. If the global list
+        contains ALL, all event types are sent unless
+        this receiver-level list restricts them to a
+        subset.";
+    }
+  }
+
+  grouping snmp-receiver-state {
+    description
+      "Operational state data for SNMP receivers.";
+
+    leaf notifications-sent {
+      type yang:counter64;
+      description
+        "Total notifications sent to this receiver.";
+    }
+
+    leaf notifications-dropped {
+      type yang:counter64;
+      description
+        "Total notifications dropped for this
+        receiver.";
+    }
+  }
+
+  grouping snmp-receiver-top {
+    description
+      "Top-level grouping for SNMP notification receivers.";
+
+    container receivers {
+      description
+        "List of configured notification receivers.";
+
+      list receiver {
+        key "name";
+        description
+          "List of SNMP notification receivers.";
+
+        leaf name {
+          type leafref {
+            path "../config/name";
+          }
+          description
+            "Reference to receiver name list key.";
+        }
+
+        container config {
+          description
+            "Configuration data for a notification receiver.";
+          uses snmp-receiver-config;
+        }
+
+        container state {
+          config false;
+          description
+            "Operational state data for a notification receiver.";
+          uses snmp-receiver-config;
+          uses snmp-receiver-state;
+        }
+      }
+    }
+  }
+
+  grouping snmp-notifications-config {
+    description
+      "Configuration data for SNMP notifications.";
+
+    leaf-list event-type {
+      type identityref {
+        base SNMP_NOTIFICATION_EVENT;
+      }
+      description
+        "Globally enabled notification event types.
+        This list provides a default set of events for
+        all receivers. Individual receivers may override
+        this by specifying their own event-type list.
+        If ALL is included, all event types are enabled
+        globally; specific identities should not be
+        combined with ALL.";
+    }
+  }
+
+  grouping snmp-notifications-state {
+    description
+      "Operational state data for SNMP notifications.
+      Reserved for future global notification
+      counters.";
+  }
+
+  grouping snmp-notifications-top {
+    description
+      "Top-level grouping for SNMP notifications.";
+
+    container notifications {
+      description
+        "Configuration and state for SNMP notifications.";
+
+      container config {
+        description
+          "Configuration data for SNMP notifications.";
+        uses snmp-notifications-config;
+      }
+
+      container state {
+        config false;
+        description
+          "Operational state data for SNMP notifications.";
+        uses snmp-notifications-config;
+        uses snmp-notifications-state;
+      }
+
+      uses snmp-receiver-top;
+    }
+  }
+
+  grouping snmp-top {
+    description
+      "Top-level grouping for SNMP configuration and state.";
+
+    container snmp {
+      description
+        "Configuration and operational state for
+        SNMP community access, notifications, and
+        trap receivers on a network device.";
+
+      container config {
+        description
+          "Configuration data for SNMP.";
+        uses snmp-global-config;
+      }
+
+      container state {
+        config false;
+        description
+          "Operational state data for SNMP.";
+        uses snmp-global-config;
+        uses snmp-global-state;
+      }
+
+      uses snmp-community-top;
+      uses snmp-notifications-top;
+    }
+  }
+}

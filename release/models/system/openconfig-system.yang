@@ -13,6 +13,7 @@ module openconfig-system {
   import openconfig-types { prefix oc-types; }
   import openconfig-extensions { prefix oc-ext; }
   import openconfig-aaa { prefix oc-aaa; }
+  import openconfig-snmp { prefix oc-snmp; }
   import openconfig-system-logging { prefix oc-log; }
   import openconfig-system-terminal { prefix oc-sys-term; }
   import openconfig-procmon { prefix oc-proc; }
