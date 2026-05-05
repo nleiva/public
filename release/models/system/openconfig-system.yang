@@ -1391,6 +1391,7 @@ module openconfig-system {
       uses system-macaddr-top;
       uses system-memory-top;
       uses system-ntp-top;
+      uses oc-snmp:snmp-top;
     }
   }
 
