@@ -42,18 +42,9 @@ module openconfig-snmp {
     This module is limited to community-based SNMP.
     SNMPv3 is out of scope.";
 
-  oc-ext:openconfig-version "0.3.0";
+  oc-ext:openconfig-version "0.1.0";
 
-  revision "2026-05-04" {
-    description
-      "Remove SNMPv3, fix receiver identity, resolve
-      dual access-restriction paths, document filter
-      precedence, remove unneeded source-address.";
-    reference
-      "0.3.0";
-  }
-
-  revision "2026-04-15" {
+  revision "2026-05-05" {
     description
       "Initial revision.";
     reference
