@@ -8,10 +8,6 @@ module openconfig-snmp {
   prefix "oc-snmp";
 
   // import some basic types
-  import ietf-inet-types {
-    prefix inet;
-  }
-
   import ietf-yang-types {
     prefix yang;
   }
@@ -110,6 +106,23 @@ module openconfig-snmp {
       in this module.";
   }
 
+  typedef snmp-notification-type {
+    type enumeration {
+      enum TRAP {
+        description
+          "Unacknowledged notification (SNMPv1 trap or
+          SNMPv2c trap PDU).";
+      }
+      enum INFORM {
+        description
+          "Acknowledged notification (SNMPv2c inform
+          request). Only valid when version is V2C.";
+      }
+    }
+    description
+      "SNMP notification delivery mechanism.";
+  }
+
   grouping snmp-global-config {
     description
       "Configuration data for global SNMP settings.";
@@ -135,9 +148,10 @@ module openconfig-snmp {
       attempts.";
   }
 
-  grouping snmp-community-client-config {
+  grouping snmp-community-manager-config {
     description
-      "Configuration data for allowed SNMP manager prefixes.";
+      "Configuration data for allowed SNMP manager
+      prefixes.";
 
     leaf prefix {
       type oc-inet:ip-prefix;
@@ -146,46 +160,51 @@ module openconfig-snmp {
     }
   }
 
-  grouping snmp-community-client-state {
+  grouping snmp-community-manager-state {
     description
       "Operational state data for community manager
-      prefixes. Reserved for future per-client
+      prefixes. Reserved for future per-manager
       counters.";
   }
 
-  grouping snmp-community-client-top {
+  grouping snmp-community-manager-top {
     description
-      "Top-level grouping for community manager prefixes.";
+      "Top-level grouping for community manager
+      prefixes.";
 
-    container clients {
+    container managers {
       description
-        "List of allowed manager prefixes for a community.";
+        "List of allowed manager prefixes for a
+        community.";
 
-      list client {
+      list manager {
         key "prefix";
         description
-          "List of prefixes allowed to use this community.";
+          "List of SNMP manager prefixes allowed to use
+          this community.";
 
         leaf prefix {
           type leafref {
             path "../config/prefix";
           }
           description
-            "Reference to community client prefix.";
+            "Reference to community manager prefix.";
         }
 
         container config {
           description
-            "Configuration data for a community client.";
-          uses snmp-community-client-config;
+            "Configuration data for a community
+            manager.";
+          uses snmp-community-manager-config;
         }
 
         container state {
           config false;
           description
-            "Operational state data for a community client.";
-          uses snmp-community-client-config;
-          uses snmp-community-client-state;
+            "Operational state data for a community
+            manager.";
+          uses snmp-community-manager-config;
+          uses snmp-community-manager-state;
         }
       }
     }
@@ -221,11 +240,24 @@ module openconfig-snmp {
       }
       description
         "Reference to an ACL restricting which managers
-        may use this community. When set, the clients
-        list is ignored and access is governed solely
-        by this ACL. If omitted, the clients list is
-        consulted; if both are absent, access is
-        unrestricted.";
+        may use this community. Used together with
+        access-list-type to uniquely identify the ACL
+        set. When set, the managers list is ignored and
+        access is governed solely by this ACL. If
+        omitted, the managers list is consulted; if
+        both are absent, access is unrestricted.";
+    }
+
+    leaf access-list-type {
+      type leafref {
+        path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set"
+          + "/oc-acl:config/oc-acl:type";
+      }
+      description
+        "Type of the ACL set referenced by access-list.
+        Required to uniquely identify the ACL set when
+        multiple sets share the same name with different
+        types (e.g., IPv4 and IPv6).";
     }
   }
 
@@ -270,7 +302,7 @@ module openconfig-snmp {
           uses snmp-community-state;
         }
 
-        uses snmp-community-client-top;
+        uses snmp-community-manager-top;
       }
     }
   }
@@ -293,7 +325,6 @@ module openconfig-snmp {
 
     leaf port {
       type oc-inet:port-number;
-      default 162;
       description
         "UDP port used for notifications. If omitted,
         the standard SNMP trap port (162) is used.";
@@ -309,7 +340,18 @@ module openconfig-snmp {
     leaf community {
       type string;
       description
-        "Community string used for v1/v2c notifications.";
+        "Community string used for v1/v2c
+        notifications.";
+    }
+
+    leaf notification-type {
+      type snmp-notification-type;
+      description
+        "Notification delivery mechanism for this
+        receiver. TRAP sends unacknowledged
+        notifications; INFORM sends acknowledged
+        notifications (V2C only). If omitted, TRAP
+        is assumed.";
     }
 
     leaf-list event-type {
